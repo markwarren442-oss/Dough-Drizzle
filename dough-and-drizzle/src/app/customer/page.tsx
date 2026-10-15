@@ -32,9 +32,20 @@ export default function CustomerPage() {
     (p) => p.available && (activeCategory === "All" || p.category === activeCategory)
   );
 
-  // Only show orders for current username
+  // Show orders for current user by username, phone number, or messenger
   const myOrders = state.username
-    ? state.orders.filter((o) => o.username === state.username)
+    ? state.orders.filter((o) => {
+        const u = state.username?.toLowerCase() || "";
+        const uDigits = u.replace(/\D/g, "");
+        if (o.username && o.username.toLowerCase() === u) return true;
+        if (o.customerName && o.customerName.toLowerCase() === u) return true;
+        if (o.phone) {
+          const pDigits = o.phone.replace(/\D/g, "");
+          if (uDigits.length >= 7 && (pDigits.includes(uDigits) || uDigits.includes(pDigits))) return true;
+        }
+        if (o.messenger && o.messenger.toLowerCase() === u) return true;
+        return false;
+      })
     : [];
 
   // ── Username Entry Screen ──────────────────────────────────────────────────
@@ -60,20 +71,73 @@ export default function CustomerPage() {
     const handleLookup = (e: React.FormEvent) => {
       e.preventDefault();
       const trimmed = usernameInput.trim();
-      if (!trimmed) { setUsernameError("Please enter your username."); return; }
+      if (!trimmed) {
+        setUsernameError("Please enter your username, phone number, or Messenger name.");
+        return;
+      }
       if (trimmed === "Kimbo@aljun") {
         router.push("/admin");
         return;
       }
-      const found = state.orders.some((o) => o.username.toLowerCase() === trimmed.toLowerCase());
-      if (!found) {
-        setUsernameError("No orders found for that username. Check the spelling or try a new account.");
+
+      const clean = trimmed.toLowerCase();
+      const cleanDigits = trimmed.replace(/\D/g, "");
+
+      // Search across username, phone, messenger, customerName
+      const matchedOrder = state.orders.find((o) => {
+        // 1. Username match
+        if (o.username && o.username.toLowerCase() === clean) return true;
+
+        // 2. Phone number match
+        if (o.phone) {
+          const orderPhoneDigits = o.phone.replace(/\D/g, "");
+          if (cleanDigits.length >= 7 && (orderPhoneDigits.includes(cleanDigits) || cleanDigits.includes(orderPhoneDigits))) {
+            return true;
+          }
+          if (o.phone.toLowerCase().includes(clean)) return true;
+        }
+
+        // 3. Messenger / Facebook match
+        if (o.messenger) {
+          const cleanOrderMessenger = o.messenger
+            .toLowerCase()
+            .replace(/^(https?:\/\/)?(www\.)?(facebook\.com\/|m\.me\/)/, "")
+            .replace(/[@/]/g, "")
+            .trim();
+          const cleanInputMessenger = clean
+            .replace(/^(https?:\/\/)?(www\.)?(facebook\.com\/|m\.me\/)/, "")
+            .replace(/[@/]/g, "")
+            .trim();
+
+          if (
+            cleanOrderMessenger &&
+            cleanInputMessenger &&
+            (cleanOrderMessenger === cleanInputMessenger ||
+              cleanOrderMessenger.includes(cleanInputMessenger) ||
+              cleanInputMessenger.includes(cleanOrderMessenger))
+          ) {
+            return true;
+          }
+          if (o.messenger.toLowerCase() === clean) return true;
+        }
+
+        // 4. Customer Name match
+        if (o.customerName && o.customerName.toLowerCase() === clean) return true;
+
+        return false;
+      });
+
+      if (!matchedOrder) {
+        setUsernameError("No orders found matching that username, phone number, or Messenger name. Please check spelling or create a new username!");
         return;
       }
-      const exactUsername = state.orders.find(
-        (o) => o.username.toLowerCase() === trimmed.toLowerCase()
-      )?.username || trimmed;
-      setUsername(exactUsername);
+
+      // Use their stored username, or fallback to customerName or input
+      const userToSet = matchedOrder.username && matchedOrder.username !== "guest"
+        ? matchedOrder.username
+        : matchedOrder.customerName || trimmed;
+
+      setUsername(userToSet);
     };
 
     return (
@@ -130,22 +194,23 @@ export default function CustomerPage() {
           ) : (
             <form onSubmit={handleLookup} className={styles.usernameForm}>
               <p className={styles.usernameDesc}>
-                Enter your <strong>username</strong> to see your past orders 📦
+                Enter your <strong>username</strong>, <strong>phone number</strong>, or <strong>Messenger name</strong> to find your orders 📦
               </p>
               <div className={styles.usernameInputWrap}>
-                <span className={styles.usernameAt}>@</span>
+                <span className={styles.usernameAt}>🔍</span>
                 <input
                   className={styles.usernameInput}
                   type="text"
-                  placeholder="Your username"
+                  placeholder="Username, phone #, or Messenger"
                   value={usernameInput}
                   onChange={(e) => { setUsernameInput(e.target.value); setUsernameError(""); }}
-                  maxLength={20}
+                  maxLength={60}
                   autoFocus
                   id="lookup-username-input"
                 />
               </div>
               {usernameError && <p className={styles.usernameError}>{usernameError}</p>}
+              <p className={styles.usernameHint}>💡 Forgot your username? Enter your phone number or Facebook/Messenger name!</p>
               <button type="submit" className={styles.usernameBtn} id="lookup-username-btn">
                 Find My Orders 🔍
               </button>
