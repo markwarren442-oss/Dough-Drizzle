@@ -1,0 +1,469 @@
+.checkoutPage {
+  min-height: 100vh;
+  background: #fdf6ee;
+  padding: 24px 16px 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Nunito', sans-serif;
+}
+
+.checkoutContainer {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #8a6d7a;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  background: #fff;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1.5px solid #fde8f2;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  transition: all 0.2s;
+}
+
+.backBtn:hover {
+  color: var(--pink-deep);
+  border-color: var(--pink-main);
+  transform: translateX(-2px);
+}
+
+.brandWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logoImg {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(232, 121, 168, 0.25);
+}
+
+.brandTitle {
+  font-family: 'Pacifico', cursive;
+  font-size: 17px;
+  color: var(--pink-deep);
+}
+
+/* Cards */
+.card {
+  background: #fff;
+  border-radius: 24px;
+  padding: 24px 20px;
+  box-shadow: 0 4px 24px rgba(249, 168, 201, 0.15);
+  border: 1.5px solid #fde8f2;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1.5px dashed #fce4ec;
+  padding-bottom: 12px;
+}
+
+.cardIcon {
+  font-size: 24px;
+}
+
+.cardTitle {
+  font-size: 17px;
+  font-weight: 800;
+  color: #3d2b1f;
+  margin: 0;
+}
+
+/* Items Review List */
+.itemsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.itemRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #fff5f8;
+}
+
+.itemThumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fff0f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-size: 22px;
+  flex-shrink: 0;
+  border: 1px solid #fde8f2;
+}
+
+.itemImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.itemInfo {
+  flex: 1;
+}
+
+.itemName {
+  font-weight: 800;
+  font-size: 14px;
+  color: #3d2b1f;
+  margin: 0 0 2px;
+}
+
+.itemDetails {
+  font-size: 12px;
+  color: #8a6d7a;
+  margin: 0;
+}
+
+.itemNote {
+  font-size: 11px;
+  color: #c08060;
+  font-style: italic;
+  margin: 2px 0 0;
+}
+
+.itemPrice {
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--pink-deep);
+  white-space: nowrap;
+}
+
+/* Delivery Banner */
+.deliveryBanner {
+  background: linear-gradient(135deg, #fde8f2, #fff5e8);
+  border: 1.5px solid #f9a8c9;
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.bannerIcon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.bannerText {
+  font-size: 12px;
+  color: #6e4655;
+  line-height: 1.4;
+  margin: 0;
+  font-weight: 600;
+}
+
+/* Form Fields */
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 800;
+  color: #3d2b1f;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.required {
+  color: #e05a5a;
+}
+
+.input, .select, .textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1.5px solid #f5cfdf;
+  background: #fffafa;
+  font-size: 14px;
+  font-family: 'Nunito', sans-serif;
+  color: #3d2b1f;
+  outline: none;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.input:focus, .select:focus, .textarea:focus {
+  border-color: var(--pink-main);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(249, 168, 201, 0.2);
+}
+
+.select {
+  cursor: pointer;
+  appearance: auto;
+}
+
+.textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.fieldHint {
+  font-size: 11px;
+  color: #8a6d7a;
+  margin: 0;
+}
+
+/* Messenger Highlight Box */
+.messengerBox {
+  background: #f0f7ff;
+  border: 1.5px solid #b8daff;
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.messengerBoxTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0066cc;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.messengerBoxText {
+  font-size: 11.5px;
+  color: #336699;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Payment Options */
+.paymentOptions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.paymentLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1.5px solid #f5cfdf;
+  background: #fffafa;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: #3d2b1f;
+  transition: all 0.2s;
+}
+
+.paymentActive {
+  border-color: var(--pink-deep);
+  background: #fff0f5;
+  box-shadow: 0 2px 10px rgba(232, 121, 168, 0.2);
+}
+
+/* Summary Row */
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13.5px;
+  color: #666;
+}
+
+.summaryTotalRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 18px;
+  font-weight: 900;
+  color: #3d2b1f;
+  border-top: 2px dashed #fce4ec;
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.totalAmount {
+  color: var(--pink-deep);
+}
+
+/* Submit Button */
+.submitBtn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #f9a8c9, #e879a8);
+  color: white;
+  border: none;
+  border-radius: 18px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(232, 121, 168, 0.4);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Nunito', sans-serif;
+}
+
+.submitBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(232, 121, 168, 0.55);
+}
+
+.submitBtn:active {
+  transform: scale(0.98);
+}
+
+/* Success View */
+.successCard {
+  background: #fff;
+  border-radius: 28px;
+  padding: 36px 24px;
+  box-shadow: 0 8px 36px rgba(249, 168, 201, 0.25);
+  border: 2px solid #fde8f2;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.successEmoji {
+  font-size: 64px;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.successTitle {
+  font-family: 'Pacifico', cursive;
+  font-size: 26px;
+  color: var(--pink-deep);
+  margin: 0;
+}
+
+.orderBadge {
+  background: #fff0f5;
+  color: var(--pink-deep);
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 800;
+  border: 1.5px solid #f9a8c9;
+}
+
+.statusNotice {
+  background: #fffdf5;
+  border: 1.5px solid #ffeaa7;
+  border-radius: 16px;
+  padding: 16px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.statusTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: #b7791f;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statusDesc {
+  font-size: 12.5px;
+  color: #744210;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.detailsList {
+  width: 100%;
+  text-align: left;
+  background: #fdfaf6;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+  font-size: 13px;
+}
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  color: #555;
+}
+
+.detailRow strong {
+  color: #3d2b1f;
+}
+
+.homeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #f9a8c9, #e879a8);
+  color: #fff;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 15px;
+  box-shadow: 0 4px 16px rgba(232, 121, 168, 0.4);
+  transition: all 0.2s;
+}
+
+.homeBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(232, 121, 168, 0.5);
+}

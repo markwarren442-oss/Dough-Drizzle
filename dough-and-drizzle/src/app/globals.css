@@ -1,0 +1,179 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Pacifico&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  --pink: #f9a8c9;
+  --pink-light: #fde8f2;
+  --pink-dark: #e879a8;
+  --cream: #fdf6ee;
+  --cream-dark: #f5e9d8;
+  --brown: #7c4a2d;
+  --brown-light: #c08060;
+  --caramel: #e8a87c;
+  --mint: #b5ead7;
+  --lavender: #d4b8f0;
+  --yellow: #ffd580;
+  --white: #ffffff;
+  --gray-100: #f7f7f7;
+  --gray-200: #eeeeee;
+  --gray-400: #aaaaaa;
+  --gray-600: #777777;
+  --gray-800: #444444;
+  --text: #3d2b1f;
+  --shadow-soft: 0 4px 20px rgba(249, 168, 201, 0.25);
+  --shadow-card: 0 2px 12px rgba(61, 43, 31, 0.08);
+  --shadow-hover: 0 8px 30px rgba(249, 168, 201, 0.4);
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-xl: 40px;
+  --transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background-color: var(--cream);
+  color: var(--text);
+  min-height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+button, a, [role="button"], input[type="submit"], input[type="button"] {
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: var(--transition);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+button:active {
+  transform: scale(0.95);
+}
+
+input, textarea, select {
+  font-family: 'Nunito', sans-serif;
+  outline: none;
+  font-size: 16px; /* prevents iOS zoom on focus */
+}
+
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.page-container {
+  min-height: 100vh;
+  background: var(--cream);
+  padding-bottom: 100px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--cream);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--pink);
+  border-radius: 4px;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: scale(1); }
+  30% { transform: scale(1.25); }
+  60% { transform: scale(0.9); }
+}
+
+.animate-fade-in { animation: fadeIn 0.4s ease both; }
+.animate-slide-up { animation: slideUp 0.4s ease both; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-bounce { animation: bounce 0.4s ease; }
+
+/* Shared badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pink-dark);
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  padding: 0 5px;
+}
+
+/* Tag pill */
+.tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.tag-pink { background: var(--pink-light); color: var(--pink-dark); }
+.tag-mint { background: #e0f5ed; color: #3a9e74; }
+.tag-yellow { background: #fff8e1; color: #d4930a; }
+.tag-lavender { background: #f0e8ff; color: #7c4fbb; }
+
+/* Utility */
+.text-center { text-align: center; }
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; }
+.w-full { width: 100%; }
+.font-bold { font-weight: 700; }
+.font-black { font-weight: 900; }
