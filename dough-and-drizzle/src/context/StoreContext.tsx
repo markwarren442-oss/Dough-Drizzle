@@ -44,6 +44,7 @@ export type OrderStatus = "Pending" | "Confirmed" | "Out for Delivery" | "Delive
 export interface Order {
   id: string;
   createdAt: string;
+  username: string;      // customer username for order lookup
   customerName: string;
   phone: string;
   municipality: Municipality;
@@ -136,6 +137,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
 // ── State ─────────────────────────────────────────────────────────────────────
 const PRODUCTS_STORAGE_KEY = "dough_and_drizzle_products_v1";
 const ORDERS_STORAGE_KEY = "dough_and_drizzle_orders_v1";
+const USERNAME_STORAGE_KEY = "dough_and_drizzle_username_v1";
 
 function saveProductsToLocalStorage(products: Product[]) {
   if (typeof window !== "undefined") {
@@ -162,6 +164,7 @@ interface State {
   orders: Order[];
   cart: CartItem[];
   cartOpen: boolean;
+  username: string | null;
 }
 
 type Action =
@@ -179,7 +182,9 @@ type Action =
   | { type: "ADD_PRODUCT"; product: Product }
   | { type: "UPDATE_PRODUCT"; product: Product }
   | { type: "DELETE_PRODUCT"; id: string }
-  | { type: "TOGGLE_AVAILABILITY"; id: string };
+  | { type: "TOGGLE_AVAILABILITY"; id: string }
+  | { type: "SET_USERNAME"; username: string }
+  | { type: "CLEAR_USERNAME" };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -247,6 +252,18 @@ function reducer(state: State, action: Action): State {
       saveProductsToLocalStorage(updated);
       return { ...state, products: updated };
     }
+    case "SET_USERNAME": {
+      if (typeof window !== "undefined") {
+        localStorage.setItem(USERNAME_STORAGE_KEY, action.username);
+      }
+      return { ...state, username: action.username };
+    }
+    case "CLEAR_USERNAME": {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(USERNAME_STORAGE_KEY);
+      }
+      return { ...state, username: null };
+    }
     default:
       return state;
   }
@@ -265,9 +282,11 @@ interface StoreContextType {
   deleteProduct: (id: string) => void;
   toggleAvailability: (id: string) => void;
   resetDefaultProducts: () => void;
-  placeOrder: (orderData: Omit<Order, "id" | "createdAt" | "status">) => Order;
+  placeOrder: (orderData: Omit<Order, "id" | "createdAt" | "status" | "username">) => Order;
   updateOrder: (orderId: string, updates: Partial<Order>) => void;
   deleteOrder: (orderId: string) => void;
+  setUsername: (username: string) => void;
+  clearUsername: () => void;
   cartTotal: number;
   cartCount: number;
   pendingOrdersCount: number;
@@ -281,6 +300,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     orders: [],
     cart: [],
     cartOpen: false,
+    username: null,
   });
 
   // Sync with localStorage on mount & listen to other tabs
@@ -311,6 +331,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     } catch (e) {
       console.warn("Failed to load orders from localStorage:", e);
+    }
+
+    // 3. Load username
+    try {
+      const storedUsername = localStorage.getItem(USERNAME_STORAGE_KEY);
+      if (storedUsername) {
+        dispatch({ type: "SET_USERNAME", username: storedUsername });
+      }
+    } catch (e) {
+      console.warn("Failed to load username from localStorage:", e);
     }
 
     const handleStorageChange = (e: StorageEvent) => {
@@ -351,13 +381,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const toggleAvailability = useCallback((id: string) => dispatch({ type: "TOGGLE_AVAILABILITY", id }), []);
   const resetDefaultProducts = useCallback(() => dispatch({ type: "RESET_DEFAULT_PRODUCTS" }), []);
 
-  const placeOrder = useCallback((orderData: Omit<Order, "id" | "createdAt" | "status">) => {
+  const placeOrder = useCallback((orderData: Omit<Order, "id" | "createdAt" | "status" | "username">) => {
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const storedUsername = typeof window !== "undefined"
+      ? localStorage.getItem(USERNAME_STORAGE_KEY) || "guest"
+      : "guest";
     const newOrder: Order = {
       ...orderData,
       id: `DD-${randomSuffix}`,
       createdAt: new Date().toISOString(),
       status: "Pending",
+      username: storedUsername,
     };
     dispatch({ type: "PLACE_ORDER", order: newOrder });
     return newOrder;
@@ -369,6 +403,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteOrder = useCallback((orderId: string) => {
     dispatch({ type: "DELETE_ORDER", orderId });
+  }, []);
+
+  const setUsername = useCallback((username: string) => {
+    dispatch({ type: "SET_USERNAME", username });
+  }, []);
+
+  const clearUsername = useCallback(() => {
+    dispatch({ type: "CLEAR_USERNAME" });
   }, []);
 
   const cartTotal = state.cart.reduce((sum, item) => {
@@ -386,6 +428,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addToCart, removeFromCart, updateQuantity, clearCart,
       toggleCart, addProduct, updateProduct, deleteProduct, toggleAvailability,
       resetDefaultProducts, placeOrder, updateOrder, deleteOrder,
+      setUsername, clearUsername,
       cartTotal, cartCount, pendingOrdersCount,
     }}>
       {children}

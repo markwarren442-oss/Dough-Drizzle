@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { useStore, Product, AddOn, Order, OrderStatus } from "@/context/StoreContext";
+import { useStore, Product, AddOn, Order, OrderStatus, CartItem } from "@/context/StoreContext";
 import styles from "./admin.module.css";
 
 interface Props {
@@ -19,6 +19,18 @@ const CATEGORY_OPTIONS = [
 ] as const;
 
 const TAG_COLORS = ["pink", "mint", "yellow", "lavender"] as const;
+
+const SIZE_ADJUSTMENTS: Record<string, number> = {
+  Small: -10,
+  Regular: 0,
+  Large: 20,
+};
+
+const getItemPrice = (item: CartItem) => {
+  const sizeAdj = SIZE_ADJUSTMENTS[item.size] ?? 0;
+  const addOnTotal = item.addOns.reduce((a, b) => a + b.price, 0);
+  return (item.product.basePrice + sizeAdj + addOnTotal) * item.quantity;
+};
 
 const EMPTY_FORM = {
   name: "",
@@ -59,6 +71,7 @@ export default function AdminDashboard({ onLogout }: Props) {
   const [orderFilter, setOrderFilter] = useState<"All" | OrderStatus>("All");
   const [scheduleInputs, setScheduleInputs] = useState<Record<string, { date: string; time: string; note: string }>>({});
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
+  const [selectedReceiptOrder, setSelectedReceiptOrder] = useState<Order | null>(null);
 
   // Convert and compress uploaded file to base64
   const handleImageFile = (file: File) => {
@@ -283,8 +296,9 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
         </div>
       </header>
 
-      {/* Stats */}
-      <div className={styles.stats}>
+      <div className={styles.dashContainer}>
+        {/* Stats */}
+        <div className={styles.stats}>
         <div className={styles.statCard}>
           <span className={styles.statNum}>{state.products.length}</span>
           <span className={styles.statLabel}>Products</span>
@@ -768,6 +782,15 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
                       >
                         {copiedOrderId === order.id ? "✓ Copied to Clipboard!" : "📋 Copy Messenger Notification Text"}
                       </button>
+
+                      {/* Print Receipt Button */}
+                      <button
+                        className={styles.printReceiptBtn}
+                        onClick={() => setSelectedReceiptOrder(order)}
+                        id={`print-receipt-btn-${order.id}`}
+                      >
+                        🖨️ Print Receipt
+                      </button>
                     </div>
 
                     {/* Quick Status Changers & Delete */}
@@ -802,12 +825,186 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
                           ❌ Cancel
                         </button>
                       )}
+                      <button
+                        className={styles.deleteOrderBtn}
+                        onClick={() => {
+                          if (window.confirm(`Delete order #${order.id} permanently from records?`)) {
+                            deleteOrder(order.id);
+                          }
+                        }}
+                        title="Delete order"
+                      >
+                        🗑️ Delete
+                      </button>
                     </div>
                   </div>
                 );
               })}
             </div>
           )}
+        </div>
+      )}
+      </div>
+
+      {/* ── Printable Receipt Modal ── */}
+      {selectedReceiptOrder && (
+        <div className={styles.receiptModalOverlay} onClick={() => setSelectedReceiptOrder(null)}>
+          <div className={styles.receiptModalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.receiptModalHeader}>
+              <h3 className={styles.receiptModalTitle}>🧾 Order Receipt</h3>
+              <button
+                className={styles.receiptModalClose}
+                onClick={() => setSelectedReceiptOrder(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* The Printable Receipt Box */}
+            <div className={styles.receipt} id="receipt-printable-area">
+              <div style={{ textAlign: "center", marginBottom: "8px" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo.png"
+                  alt="Dough & Drizzle"
+                  style={{ width: "48px", height: "48px", borderRadius: "50%", margin: "0 auto 4px", display: "block" }}
+                />
+                <h2 style={{ margin: "2px 0 0", fontSize: "16px", fontWeight: "900" }}>Dough &amp; Drizzle</h2>
+                <p className={styles.receiptTagline}>Fresh Homemade Bakery Treats</p>
+                <p style={{ margin: 0, fontSize: "9px", color: "#666" }}>Bulalacao &amp; Roxas, Oriental Mindoro</p>
+              </div>
+
+              <hr className={styles.receiptDivider} />
+
+              <div className={styles.receiptRow}>
+                <span><strong>ORDER #:</strong></span>
+                <span><strong>{selectedReceiptOrder.id}</strong></span>
+              </div>
+              <div className={styles.receiptRow}>
+                <span>Date:</span>
+                <span>
+                  {new Date(selectedReceiptOrder.createdAt).toLocaleDateString()} {new Date(selectedReceiptOrder.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </div>
+              <div className={styles.receiptRow}>
+                <span>Status:</span>
+                <span><strong>{selectedReceiptOrder.status}</strong></span>
+              </div>
+              {selectedReceiptOrder.deliveryDate && selectedReceiptOrder.deliveryTime && (
+                <div className={styles.receiptRow}>
+                  <span>Sched. Delivery:</span>
+                  <span>{selectedReceiptOrder.deliveryDate} @ {selectedReceiptOrder.deliveryTime}</span>
+                </div>
+              )}
+
+              <hr className={styles.receiptDivider} />
+
+              <div style={{ margin: "4px 0" }}>
+                <div style={{ fontSize: "10px", fontWeight: "bold", textTransform: "uppercase", color: "#555" }}>Customer Details:</div>
+                <div className={styles.receiptRow}>
+                  <span>Name:</span>
+                  <span><strong>{selectedReceiptOrder.customerName}</strong></span>
+                </div>
+                {selectedReceiptOrder.username && (
+                  <div className={styles.receiptRow}>
+                    <span>Username:</span>
+                    <span>@{selectedReceiptOrder.username}</span>
+                  </div>
+                )}
+                <div className={styles.receiptRow}>
+                  <span>Phone:</span>
+                  <span>{selectedReceiptOrder.phone}</span>
+                </div>
+                <div className={styles.receiptRow}>
+                  <span>Municipality:</span>
+                  <span>{selectedReceiptOrder.municipality}</span>
+                </div>
+                <div style={{ fontSize: "10px", wordBreak: "break-word", marginTop: "2px" }}>
+                  <span>Address: </span>
+                  <span>{selectedReceiptOrder.barangayStreet}</span>
+                </div>
+                {selectedReceiptOrder.messenger && (
+                  <div className={styles.receiptRow} style={{ marginTop: "2px" }}>
+                    <span>Messenger:</span>
+                    <span>{selectedReceiptOrder.messenger}</span>
+                  </div>
+                )}
+              </div>
+
+              <hr className={styles.receiptDivider} />
+
+              <div style={{ margin: "4px 0" }}>
+                <div style={{ fontSize: "10px", fontWeight: "bold", textTransform: "uppercase", color: "#555", marginBottom: "4px" }}>Items Ordered:</div>
+                {selectedReceiptOrder.items.map((item, idx) => (
+                  <div key={idx} className={styles.receiptItemRow}>
+                    <div style={{ maxWidth: "70%" }}>
+                      <div><strong>{item.quantity}x {item.product.name}</strong> ({item.size})</div>
+                      {item.flavor && <div style={{ fontSize: "9.5px", color: "#555" }}>Flavor: {item.flavor}</div>}
+                      {item.addOns.length > 0 && (
+                        <div style={{ fontSize: "9px", color: "#666" }}>
+                          + {item.addOns.map((a) => a.label).join(", ")}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ textAlign: "right", fontWeight: "bold" }}>
+                      ₱{getItemPrice(item)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <hr className={styles.receiptDivider} />
+
+              <div className={styles.receiptRow}>
+                <span>Delivery Fee ({selectedReceiptOrder.municipality.split(",")[0]}):</span>
+                <span>₱{selectedReceiptOrder.deliveryFee}</span>
+              </div>
+              <div className={styles.receiptRow}>
+                <span>Payment Method:</span>
+                <span>{selectedReceiptOrder.paymentMethod}</span>
+              </div>
+
+              <div className={styles.receiptTotal}>
+                <span>TOTAL AMOUNT:</span>
+                <span>₱{selectedReceiptOrder.total}</span>
+              </div>
+
+              {selectedReceiptOrder.specialInstructions && (
+                <div style={{ marginTop: "6px", fontSize: "9.5px", fontStyle: "italic", borderTop: "1px dotted #ccc", paddingTop: "4px" }}>
+                  Note: &ldquo;{selectedReceiptOrder.specialInstructions}&rdquo;
+                </div>
+              )}
+
+              {selectedReceiptOrder.adminNotes && (
+                <div style={{ marginTop: "4px", fontSize: "9.5px", color: "#444" }}>
+                  Baker remarks: {selectedReceiptOrder.adminNotes}
+                </div>
+              )}
+
+              <hr className={styles.receiptDivider} />
+
+              <div className={styles.receiptFooter}>
+                <p style={{ margin: "0 0 2px" }}>✨ Freshly baked with love 💕</p>
+                <p style={{ margin: 0, fontWeight: "bold" }}>Thank you for your order!</p>
+              </div>
+            </div>
+
+            <div className={styles.receiptModalActions}>
+              <button
+                className={styles.printModalBtn}
+                onClick={() => window.print()}
+                id="trigger-print-btn"
+              >
+                🖨️ Print Now (AirPrint / Thermal)
+              </button>
+              <button
+                className={styles.closeModalBtn}
+                onClick={() => setSelectedReceiptOrder(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

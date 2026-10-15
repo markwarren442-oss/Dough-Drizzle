@@ -921,3 +921,516 @@
   border-color: #bbb;
 }
 
+/* ── Print Receipt Button ─────────────────────────────────────────────── */
+.printReceiptBtn {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #e879a8;
+  background: linear-gradient(135deg, #fde8f2, #fff5f9);
+  font-size: 12px;
+  font-weight: 800;
+  color: #e879a8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: 'Nunito', sans-serif;
+  transition: all 0.2s;
+}
+
+.printReceiptBtn:hover {
+  background: #e879a8;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(232, 121, 168, 0.35);
+}
+
+/* ── Delete Order Button ──────────────────────────────────────────────── */
+.deleteOrderBtn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid #ffcdd2;
+  background: #fff5f5;
+  color: #c62828;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.deleteOrderBtn:hover {
+  background: #c62828;
+  color: white;
+}
+
+.dashContainer {
+  max-width: 980px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RECEIPT MODAL & PRINTING
+   ══════════════════════════════════════════════════════════════════════════ */
+.receiptModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 15, 25, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.2s ease;
+}
+
+.receiptModalContent {
+  background: #fff;
+  border-radius: 24px;
+  max-width: 440px;
+  width: 100%;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: slideUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.receiptModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1.5px solid #f5e9d8;
+  padding-bottom: 10px;
+}
+
+.receiptModalTitle {
+  font-size: 18px;
+  font-weight: 900;
+  color: #3d2b1f;
+  margin: 0;
+}
+
+.receiptModalClose {
+  background: #fdf6ee;
+  border: 1.5px solid #f5e9d8;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.receiptModalClose:hover {
+  background: #e879a8;
+  color: white;
+  border-color: #e879a8;
+}
+
+.receipt {
+  font-family: 'Courier New', Courier, monospace;
+  width: 100%;
+  max-width: 340px;
+  padding: 18px 16px;
+  background: #fff;
+  color: #000;
+  font-size: 11px;
+  line-height: 1.55;
+  border: 1.5px dashed #bbb;
+  border-radius: 12px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.receiptTagline {
+  text-align: center;
+  font-size: 10px;
+  color: #666;
+  margin: 2px 0 0;
+}
+
+.receiptDivider {
+  border: none;
+  border-top: 1px dashed #888;
+  margin: 8px 0;
+}
+
+.receiptRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+
+.receiptItemRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 4px 0;
+  font-size: 11px;
+  border-bottom: 1px dotted #eee;
+}
+
+.receiptTotal {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 900;
+  font-size: 14px;
+  border-top: 2px solid #000;
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.receiptFooter {
+  text-align: center;
+  font-size: 10.5px;
+  color: #555;
+  margin-top: 10px;
+}
+
+.receiptModalActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.printModalBtn {
+  flex: 1;
+  padding: 14px;
+  background: linear-gradient(135deg, #f9a8c9, #e879a8);
+  color: white;
+  font-size: 14px;
+  font-weight: 800;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(232, 121, 168, 0.4);
+  font-family: 'Nunito', sans-serif;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.printModalBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(232, 121, 168, 0.55);
+}
+
+.closeModalBtn {
+  padding: 14px 20px;
+  background: #fdf6ee;
+  border: 1.5px solid #f5e9d8;
+  border-radius: 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #888;
+  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  transition: all 0.2s;
+}
+
+.closeModalBtn:hover {
+  background: #f5e9d8;
+  color: #3d2b1f;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE – iPad 11th Gen & All Devices
+   iPad 11th Gen viewports: 820px-834px (portrait) and 1180px-1194px (landscape)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* iPad Landscape / Standard Laptops (1024px–1200px) */
+@media (max-width: 1200px) {
+  .dashContainer {
+    padding: 0 16px;
+  }
+}
+
+/* iPad Portrait & Tablets (768px–1024px) */
+@media (max-width: 1024px) {
+  .dashHeader {
+    padding: 14px 20px;
+  }
+  .dashTitle {
+    font-size: 19px;
+  }
+  .stats {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+  .statCard {
+    padding: 14px 10px;
+  }
+  .statNum {
+    font-size: 26px;
+  }
+  .tabs {
+    padding: 0 16px 14px;
+    gap: 8px;
+  }
+  .tab {
+    font-size: 13px;
+    padding: 11px 14px;
+    min-height: 44px;
+  }
+  .productList {
+    padding: 0 16px;
+  }
+  .formCard {
+    margin: 0 16px;
+    padding: 20px;
+  }
+  .ordersList {
+    padding: 0 16px;
+  }
+  .orderFilterBar {
+    padding: 0 16px 14px;
+    gap: 6px;
+  }
+  .orderFilterBtn {
+    min-height: 38px;
+    font-size: 12.5px;
+  }
+  .orderCard {
+    padding: 18px;
+  }
+  .printReceiptBtn {
+    padding: 12px 16px;
+    font-size: 13px;
+    min-height: 44px;
+  }
+  .confirmNotifyBtn {
+    min-height: 46px;
+    font-size: 13.5px;
+  }
+  .copyNotifyBtn {
+    min-height: 42px;
+  }
+  .statusChangeBtn, .deleteOrderBtn {
+    min-height: 38px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}
+
+/* iPad Mini & Tablet Portrait (600px–834px) */
+@media (max-width: 834px) {
+  .dashHeader {
+    padding: 12px 16px;
+  }
+  .dashLogo {
+    width: 40px;
+    height: 40px;
+  }
+  .dashTitle {
+    font-size: 18px;
+  }
+  .stats {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+  .statNum {
+    font-size: 24px;
+  }
+  .statLabel {
+    font-size: 10px;
+  }
+  .formGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  /* Prevent iOS Safari from auto-zooming on focus: ensure inputs are >= 16px */
+  .fieldInput,
+  .fieldSelect,
+  .fieldTextarea,
+  .scheduleInput,
+  .passwordInput {
+    font-size: 16px !important;
+  }
+}
+
+/* Phones (under 600px) */
+@media (max-width: 600px) {
+  .dashHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .headerRight {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .stats {
+    padding: 10px 12px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .statCard {
+    min-width: calc(33.33% - 6px);
+    padding: 10px 6px;
+  }
+  .statNum {
+    font-size: 20px;
+  }
+  .statLabel {
+    font-size: 9px;
+  }
+
+  .tabs {
+    padding: 0 12px 10px;
+    gap: 5px;
+  }
+  .tab {
+    padding: 8px 8px;
+    font-size: 11.5px;
+  }
+
+  .productList {
+    padding: 0 12px;
+  }
+  .formCard {
+    margin: 0 12px;
+    padding: 16px;
+  }
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .productRow {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .productRowName {
+    font-size: 13px;
+  }
+  .productRowActions {
+    gap: 5px;
+  }
+  .actionBtn {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+
+  .orderFilterBar {
+    padding: 0 12px 10px;
+    gap: 4px;
+  }
+  .orderFilterBtn {
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+  .ordersList {
+    padding: 0 12px;
+  }
+  .orderCard {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .scheduleInputs {
+    grid-template-columns: 1fr;
+  }
+
+  .orderActionsRow {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .statusChangeBtn, .deleteOrderBtn {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .loginCard {
+    padding: 28px 20px;
+    border-radius: 22px;
+  }
+
+  .receiptModalContent {
+    padding: 16px;
+    border-radius: 20px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PRINT RECEIPT STYLES
+   ══════════════════════════════════════════════════════════════════════════ */
+@media print {
+  /* Set clean background and margin for print */
+  @page {
+    margin: 4mm;
+    size: auto;
+  }
+
+  body {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide everything on screen */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Make receipt modal and printable receipt visible */
+  .receiptModalOverlay,
+  .receiptModalOverlay * {
+    visibility: visible;
+  }
+
+  .receiptModalOverlay {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    background: none !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .receiptModalContent {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    max-width: 80mm !important;
+    width: 80mm !important;
+    margin: 0 auto !important;
+  }
+
+  .receiptModalHeader,
+  .receiptModalActions {
+    display: none !important;
+  }
+
+  .receipt {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    padding: 4mm !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: 11px !important;
+    color: #000 !important;
+    margin: 0 auto !important;
+  }
+}

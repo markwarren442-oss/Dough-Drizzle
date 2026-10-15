@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStore, Product } from "@/context/StoreContext";
 import CustomizeModal from "@/components/CustomizeModal";
@@ -16,14 +17,144 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export default function CustomerPage() {
-  const { state, toggleCart, cartCount } = useStore();
+  const router = useRouter();
+  const { state, toggleCart, cartCount, setUsername, clearUsername } = useStore();
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showOrdersModal, setShowOrdersModal] = useState(false);
 
+  // Username entry states
+  const [usernameInput, setUsernameInput] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [lookupMode, setLookupMode] = useState(false);
+
   const filtered = state.products.filter(
     (p) => p.available && (activeCategory === "All" || p.category === activeCategory)
   );
+
+  // Only show orders for current username
+  const myOrders = state.username
+    ? state.orders.filter((o) => o.username === state.username)
+    : [];
+
+  // ── Username Entry Screen ──────────────────────────────────────────────────
+  if (!state.username) {
+    const handleNewUser = (e: React.FormEvent) => {
+      e.preventDefault();
+      const trimmed = usernameInput.trim();
+      if (!trimmed) { setUsernameError("Please enter a username."); return; }
+      if (trimmed.length < 2) { setUsernameError("Username must be at least 2 characters."); return; }
+      if (trimmed.length > 20) { setUsernameError("Username must be 20 characters or less."); return; }
+      if (!/^[a-zA-Z0-9_.@ ]+$/.test(trimmed)) {
+        setUsernameError("Only letters, numbers, spaces, dots, @ and underscores are allowed.");
+        return;
+      }
+      // Secret admin access
+      if (trimmed === "Kimbo@aljun") {
+        router.push("/admin");
+        return;
+      }
+      setUsername(trimmed);
+    };
+
+    const handleLookup = (e: React.FormEvent) => {
+      e.preventDefault();
+      const trimmed = usernameInput.trim();
+      if (!trimmed) { setUsernameError("Please enter your username."); return; }
+      if (trimmed === "Kimbo@aljun") {
+        router.push("/admin");
+        return;
+      }
+      const found = state.orders.some((o) => o.username.toLowerCase() === trimmed.toLowerCase());
+      if (!found) {
+        setUsernameError("No orders found for that username. Check the spelling or try a new account.");
+        return;
+      }
+      const exactUsername = state.orders.find(
+        (o) => o.username.toLowerCase() === trimmed.toLowerCase()
+      )?.username || trimmed;
+      setUsername(exactUsername);
+    };
+
+    return (
+      <div className={styles.page} style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+        <div className={styles.usernameCard}>
+          <div className={styles.usernameLogoWrap}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Dough & Drizzle" className={styles.usernameLogoImg} />
+          </div>
+          <h1 className={styles.usernameTitle}>Dough &amp; Drizzle</h1>
+          <p className={styles.usernameSub}>Homemade with love ✨</p>
+
+          <div className={styles.usernameTabRow}>
+            <button
+              className={`${styles.usernameTab} ${!lookupMode ? styles.usernameTabActive : ""}`}
+              onClick={() => { setLookupMode(false); setUsernameError(""); setUsernameInput(""); }}
+              id="tab-new-user"
+            >
+              👋 New Here
+            </button>
+            <button
+              className={`${styles.usernameTab} ${lookupMode ? styles.usernameTabActive : ""}`}
+              onClick={() => { setLookupMode(true); setUsernameError(""); setUsernameInput(""); }}
+              id="tab-returning"
+            >
+              🔍 Returning Customer
+            </button>
+          </div>
+
+          {!lookupMode ? (
+            <form onSubmit={handleNewUser} className={styles.usernameForm}>
+              <p className={styles.usernameDesc}>
+                Choose a <strong>username</strong> so you can track your orders anytime you come back! 🍪
+              </p>
+              <div className={styles.usernameInputWrap}>
+                <span className={styles.usernameAt}>@</span>
+                <input
+                  className={styles.usernameInput}
+                  type="text"
+                  placeholder="e.g. maria_santos"
+                  value={usernameInput}
+                  onChange={(e) => { setUsernameInput(e.target.value); setUsernameError(""); }}
+                  maxLength={20}
+                  autoFocus
+                  id="new-username-input"
+                />
+              </div>
+              {usernameError && <p className={styles.usernameError}>{usernameError}</p>}
+              <p className={styles.usernameHint}>Letters, numbers, spaces, dots, underscores · Max 20 chars</p>
+              <button type="submit" className={styles.usernameBtn} id="create-username-btn">
+                Start Shopping 🛍️
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleLookup} className={styles.usernameForm}>
+              <p className={styles.usernameDesc}>
+                Enter your <strong>username</strong> to see your past orders 📦
+              </p>
+              <div className={styles.usernameInputWrap}>
+                <span className={styles.usernameAt}>@</span>
+                <input
+                  className={styles.usernameInput}
+                  type="text"
+                  placeholder="Your username"
+                  value={usernameInput}
+                  onChange={(e) => { setUsernameInput(e.target.value); setUsernameError(""); }}
+                  maxLength={20}
+                  autoFocus
+                  id="lookup-username-input"
+                />
+              </div>
+              {usernameError && <p className={styles.usernameError}>{usernameError}</p>}
+              <button type="submit" className={styles.usernameBtn} id="lookup-username-btn">
+                Find My Orders 🔍
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -50,7 +181,7 @@ export default function CustomerPage() {
         {/* Hero image + greeting */}
         <div className={styles.hero}>
           <div className={styles.heroText}>
-            <p className={styles.greeting}>Hello there! 👋</p>
+            <p className={styles.greeting}>Hello, <strong>@{state.username}</strong>! 👋</p>
             <h2 className={styles.heroTitle}>What sweet treat<br />are you craving? 🍪</h2>
             <p className={styles.heroSub}>Fresh baked daily, made with 💕</p>
           </div>
@@ -62,8 +193,8 @@ export default function CustomerPage() {
         </div>
       </header>
 
-      {/* Active Order Banner (if any orders placed) */}
-      {state.orders.length > 0 && (
+      {/* Active Order Banner (if any orders for this user) */}
+      {myOrders.length > 0 && (
         <div
           className={styles.activeOrderBanner}
           onClick={() => setShowOrdersModal(true)}
@@ -72,19 +203,19 @@ export default function CustomerPage() {
         >
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <span style={{ fontSize: "24px" }}>
-              {state.orders[0].status === "Pending" && "⏳"}
-              {state.orders[0].status === "Confirmed" && "📅"}
-              {state.orders[0].status === "Out for Delivery" && "🛵"}
-              {state.orders[0].status === "Delivered" && "✅"}
-              {state.orders[0].status === "Cancelled" && "❌"}
+              {myOrders[0].status === "Pending" && "⏳"}
+              {myOrders[0].status === "Confirmed" && "📅"}
+              {myOrders[0].status === "Out for Delivery" && "🛵"}
+              {myOrders[0].status === "Delivered" && "✅"}
+              {myOrders[0].status === "Cancelled" && "❌"}
             </span>
             <div>
               <p style={{ margin: "0 0 2px", fontWeight: 800, fontSize: "13px", color: "#3d2b1f" }}>
-                Order #{state.orders[0].id} · <span style={{ color: "var(--pink-deep)" }}>{state.orders[0].status}</span>
+                Order #{myOrders[0].id} · <span style={{ color: "var(--pink-deep)" }}>{myOrders[0].status}</span>
               </p>
               <p style={{ margin: 0, fontSize: "11px", color: "#8a6d7a" }}>
-                {state.orders[0].deliveryDate && state.orders[0].deliveryTime
-                  ? `Delivery on ${state.orders[0].deliveryDate} at ${state.orders[0].deliveryTime}`
+                {myOrders[0].deliveryDate && myOrders[0].deliveryTime
+                  ? `Delivery on ${myOrders[0].deliveryDate} at ${myOrders[0].deliveryTime}`
                   : "Awaiting kitchen delivery date & time schedule"}
               </p>
             </div>
@@ -188,12 +319,18 @@ export default function CustomerPage() {
           id="customer-orders-nav-btn"
         >
           <span>📦</span>
-          <span>Orders {state.orders.length > 0 && `(${state.orders.length})`}</span>
+          <span>Orders {myOrders.length > 0 && `(${myOrders.length})`}</span>
         </button>
-        <Link href="/admin" className={styles.navBtn}>
-          <span>🛠️</span>
-          <span>Admin</span>
-        </Link>
+        <button
+          className={styles.navBtn}
+          onClick={() => clearUsername()}
+          id="switch-user-btn"
+          title={`Signed in as @${state.username}. Tap to switch.`}
+        >
+          <span>👤</span>
+          <span>@{(state.username ?? "").slice(0, 6)}{(state.username?.length ?? 0) > 6 ? "…" : ""}</span>
+        </button>
+
       </nav>
 
       {/* Customer Orders Modal */}
@@ -205,7 +342,11 @@ export default function CustomerPage() {
               <button className={styles.modalCloseBtn} onClick={() => setShowOrdersModal(false)}>✕</button>
             </div>
 
-            {state.orders.length === 0 ? (
+            <p style={{ fontSize: "12px", color: "#aaa", margin: "-4px 0 0", fontWeight: 600 }}>
+              Signed in as <strong style={{ color: "#e879a8" }}>@{state.username}</strong>
+            </p>
+
+            {myOrders.length === 0 ? (
               <div style={{ textAlign: "center", padding: "32px 10px", color: "#8a6d7a" }}>
                 <span style={{ fontSize: "48px" }}>🍪</span>
                 <p style={{ fontWeight: 800, marginTop: 8, color: "#3d2b1f" }}>No orders placed yet!</p>
@@ -215,7 +356,7 @@ export default function CustomerPage() {
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                {state.orders.map((ord) => (
+                {myOrders.map((ord) => (
                   <div
                     key={ord.id}
                     style={{
