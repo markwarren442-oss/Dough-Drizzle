@@ -98,9 +98,10 @@ export default function CheckoutPage() {
       } catch (emailErr) {
         console.warn("📧 Email notification failed (order still placed):", emailErr);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to place order:", err);
-      alert("Something went wrong placing your order. Please try again.");
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Could not place order: ${msg}`);
     } finally {
       setSubmitting(false);
     }
