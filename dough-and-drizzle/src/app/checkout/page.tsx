@@ -27,6 +27,7 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<"Cash on Delivery (COD)" | "GCash">("Cash on Delivery (COD)");
 
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const deliveryFee = DELIVERY_FEES[municipality] || 40;
   const grandTotal = cartTotal + deliveryFee;
@@ -43,57 +44,65 @@ export default function CheckoutPage() {
       return;
     }
 
-    const newOrder = placeOrder({
-      customerName: customerName.trim(),
-      phone: phone.trim(),
-      municipality,
-      barangayStreet: barangayStreet.trim(),
-      messenger: messenger.trim(),
-      specialInstructions: specialInstructions.trim() || undefined,
-      paymentMethod,
-      items: [...state.cart],
-      subtotal: cartTotal,
-      deliveryFee,
-      total: grandTotal,
-    });
-
-    setPlacedOrder(newOrder);
-
-    // 📧 Send email notification to admin (non-blocking)
+    setSubmitting(true);
     try {
-      await fetch("/api/send-order-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderId: newOrder.id,
-          customerName: newOrder.customerName,
-          phone: newOrder.phone,
-          municipality: newOrder.municipality,
-          barangayStreet: newOrder.barangayStreet,
-          messenger: newOrder.messenger,
-          paymentMethod: newOrder.paymentMethod,
-          subtotal: newOrder.subtotal,
-          deliveryFee: newOrder.deliveryFee,
-          total: newOrder.total,
-          items: newOrder.items.map((item) => ({
-            quantity: item.quantity,
-            product: {
-              name: item.product.name,
-              emoji: item.product.emoji,
-              basePrice: item.product.basePrice,
-            },
-            size: item.size,
-            flavor: item.flavor,
-            addOns: item.addOns,
-            specialNote: item.specialNote,
-          })),
-          specialInstructions: newOrder.specialInstructions,
-          createdAt: newOrder.createdAt,
-        }),
+      const newOrder = await placeOrder({
+        customerName: customerName.trim(),
+        phone: phone.trim(),
+        municipality,
+        barangayStreet: barangayStreet.trim(),
+        messenger: messenger.trim(),
+        specialInstructions: specialInstructions.trim() || undefined,
+        paymentMethod,
+        items: [...state.cart],
+        subtotal: cartTotal,
+        deliveryFee,
+        total: grandTotal,
       });
-      console.log("📧 Order email notification sent!");
-    } catch (emailErr) {
-      console.warn("📧 Email notification failed (order still placed):", emailErr);
+
+      setPlacedOrder(newOrder);
+
+      // 📧 Send email notification to admin (non-blocking)
+      try {
+        await fetch("/api/send-order-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId: newOrder.id,
+            customerName: newOrder.customerName,
+            phone: newOrder.phone,
+            municipality: newOrder.municipality,
+            barangayStreet: newOrder.barangayStreet,
+            messenger: newOrder.messenger,
+            paymentMethod: newOrder.paymentMethod,
+            subtotal: newOrder.subtotal,
+            deliveryFee: newOrder.deliveryFee,
+            total: newOrder.total,
+            items: newOrder.items.map((item) => ({
+              quantity: item.quantity,
+              product: {
+                name: item.product.name,
+                emoji: item.product.emoji,
+                basePrice: item.product.basePrice,
+              },
+              size: item.size,
+              flavor: item.flavor,
+              addOns: item.addOns,
+              specialNote: item.specialNote,
+            })),
+            specialInstructions: newOrder.specialInstructions,
+            createdAt: newOrder.createdAt,
+          }),
+        });
+        console.log("📧 Order email notification sent!");
+      } catch (emailErr) {
+        console.warn("📧 Email notification failed (order still placed):", emailErr);
+      }
+    } catch (err) {
+      console.error("Failed to place order:", err);
+      alert("Something went wrong placing your order. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -436,8 +445,8 @@ export default function CheckoutPage() {
               <span className={styles.totalAmount}>₱{grandTotal}</span>
             </div>
 
-            <button type="submit" className={styles.submitBtn} id="confirm-order-btn">
-              Confirm & Place Order ✨
+            <button type="submit" className={styles.submitBtn} id="confirm-order-btn" disabled={submitting}>
+              {submitting ? "Placing Order..." : "Confirm & Place Order ✨"}
             </button>
             <p style={{ textAlign: "center", fontSize: "11px", color: "#8a6d7a", margin: 0 }}>
               💕 Made fresh with love at Dough & Drizzle

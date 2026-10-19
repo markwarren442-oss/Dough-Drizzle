@@ -230,7 +230,7 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
       return;
     }
 
-    updateOrder(order.id, {
+    void updateOrder(order.id, {
       status: "Confirmed",
       deliveryDate: sched.date,
       deliveryTime: sched.time,
@@ -799,7 +799,7 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
                       {order.status !== "Out for Delivery" && (
                         <button
                           className={styles.statusChangeBtn}
-                          onClick={() => updateOrder(order.id, { status: "Out for Delivery" })}
+                          onClick={() => void updateOrder(order.id, { status: "Out for Delivery" })}
                         >
                           🛵 Out for Delivery
                         </button>
@@ -807,7 +807,7 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
                       {order.status !== "Delivered" && (
                         <button
                           className={styles.statusChangeBtn}
-                          onClick={() => updateOrder(order.id, { status: "Delivered" })}
+                          onClick={() => void updateOrder(order.id, { status: "Delivered" })}
                         >
                           ✅ Delivered
                         </button>
@@ -818,7 +818,7 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
                           style={{ color: "#c62828" }}
                           onClick={() => {
                             if (window.confirm(`Cancel order #${order.id}?`)) {
-                              updateOrder(order.id, { status: "Cancelled" });
+                              void updateOrder(order.id, { status: "Cancelled" });
                             }
                           }}
                         >
@@ -829,7 +829,7 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
                         className={styles.deleteOrderBtn}
                         onClick={() => {
                           if (window.confirm(`Delete order #${order.id} permanently from records?`)) {
-                            deleteOrder(order.id);
+                            void deleteOrder(order.id);
                           }
                         }}
                         title="Delete order"

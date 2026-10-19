@@ -5,8 +5,20 @@ import React, {
   useContext,
   useReducer,
   useCallback,
+  useEffect,
   ReactNode,
 } from "react";
+import {
+  collection,
+  doc,
+  onSnapshot,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  orderBy,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 export type ProductSize = "Small" | "Regular" | "Large";
@@ -135,28 +147,12 @@ export const DEFAULT_PRODUCTS: Product[] = [
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
-const PRODUCTS_STORAGE_KEY = "dough_and_drizzle_products_v1";
-const ORDERS_STORAGE_KEY = "dough_and_drizzle_orders_v1";
+// Username stays local (per-browser session)
 const USERNAME_STORAGE_KEY = "dough_and_drizzle_username_v1";
 
-function saveProductsToLocalStorage(products: Product[]) {
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
-    } catch (e) {
-      console.warn("Could not save products to localStorage", e);
-    }
-  }
-}
-
-function saveOrdersToLocalStorage(orders: Order[]) {
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
-    } catch (e) {
-      console.warn("Could not save orders to localStorage", e);
-    }
-  }
+// Strip undefined fields — Firestore does not accept `undefined`
+function cleanForFirestore<T extends object>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj)) as T;
 }
 
 interface State {
@@ -165,54 +161,27 @@ interface State {
   cart: CartItem[];
   cartOpen: boolean;
   username: string | null;
+  firestoreReady: boolean;
 }
 
 type Action =
   | { type: "LOAD_PRODUCTS"; products: Product[] }
-  | { type: "RESET_DEFAULT_PRODUCTS" }
   | { type: "LOAD_ORDERS"; orders: Order[] }
-  | { type: "PLACE_ORDER"; order: Order }
-  | { type: "UPDATE_ORDER"; orderId: string; updates: Partial<Order> }
-  | { type: "DELETE_ORDER"; orderId: string }
   | { type: "ADD_TO_CART"; item: CartItem }
   | { type: "REMOVE_FROM_CART"; cartId: string }
   | { type: "UPDATE_QUANTITY"; cartId: string; quantity: number }
   | { type: "CLEAR_CART" }
   | { type: "TOGGLE_CART"; open?: boolean }
-  | { type: "ADD_PRODUCT"; product: Product }
-  | { type: "UPDATE_PRODUCT"; product: Product }
-  | { type: "DELETE_PRODUCT"; id: string }
-  | { type: "TOGGLE_AVAILABILITY"; id: string }
   | { type: "SET_USERNAME"; username: string }
-  | { type: "CLEAR_USERNAME" };
+  | { type: "CLEAR_USERNAME" }
+  | { type: "SET_FIRESTORE_READY" };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "LOAD_PRODUCTS":
       return { ...state, products: action.products };
-    case "RESET_DEFAULT_PRODUCTS": {
-      saveProductsToLocalStorage(DEFAULT_PRODUCTS);
-      return { ...state, products: DEFAULT_PRODUCTS };
-    }
     case "LOAD_ORDERS":
       return { ...state, orders: action.orders };
-    case "PLACE_ORDER": {
-      const updatedOrders = [action.order, ...state.orders];
-      saveOrdersToLocalStorage(updatedOrders);
-      return { ...state, orders: updatedOrders, cart: [], cartOpen: false };
-    }
-    case "UPDATE_ORDER": {
-      const updatedOrders = state.orders.map((o) =>
-        o.id === action.orderId ? { ...o, ...action.updates } : o
-      );
-      saveOrdersToLocalStorage(updatedOrders);
-      return { ...state, orders: updatedOrders };
-    }
-    case "DELETE_ORDER": {
-      const updatedOrders = state.orders.filter((o) => o.id !== action.orderId);
-      saveOrdersToLocalStorage(updatedOrders);
-      return { ...state, orders: updatedOrders };
-    }
     case "ADD_TO_CART":
       return { ...state, cart: [...state.cart, action.item] };
     case "REMOVE_FROM_CART":
@@ -228,30 +197,6 @@ function reducer(state: State, action: Action): State {
       return { ...state, cart: [] };
     case "TOGGLE_CART":
       return { ...state, cartOpen: action.open !== undefined ? action.open : !state.cartOpen };
-    case "ADD_PRODUCT": {
-      const updated = [...state.products, action.product];
-      saveProductsToLocalStorage(updated);
-      return { ...state, products: updated };
-    }
-    case "UPDATE_PRODUCT": {
-      const updated = state.products.map((p) =>
-        p.id === action.product.id ? action.product : p
-      );
-      saveProductsToLocalStorage(updated);
-      return { ...state, products: updated };
-    }
-    case "DELETE_PRODUCT": {
-      const updated = state.products.filter((p) => p.id !== action.id);
-      saveProductsToLocalStorage(updated);
-      return { ...state, products: updated };
-    }
-    case "TOGGLE_AVAILABILITY": {
-      const updated = state.products.map((p) =>
-        p.id === action.id ? { ...p, available: !p.available } : p
-      );
-      saveProductsToLocalStorage(updated);
-      return { ...state, products: updated };
-    }
     case "SET_USERNAME": {
       if (typeof window !== "undefined") {
         localStorage.setItem(USERNAME_STORAGE_KEY, action.username);
@@ -264,6 +209,8 @@ function reducer(state: State, action: Action): State {
       }
       return { ...state, username: null };
     }
+    case "SET_FIRESTORE_READY":
+      return { ...state, firestoreReady: true };
     default:
       return state;
   }
@@ -277,14 +224,14 @@ interface StoreContextType {
   updateQuantity: (cartId: string, quantity: number) => void;
   clearCart: () => void;
   toggleCart: (open?: boolean) => void;
-  addProduct: (product: Product) => void;
-  updateProduct: (product: Product) => void;
-  deleteProduct: (id: string) => void;
-  toggleAvailability: (id: string) => void;
-  resetDefaultProducts: () => void;
-  placeOrder: (orderData: Omit<Order, "id" | "createdAt" | "status" | "username">) => Order;
-  updateOrder: (orderId: string, updates: Partial<Order>) => void;
-  deleteOrder: (orderId: string) => void;
+  addProduct: (product: Product) => Promise<void>;
+  updateProduct: (product: Product) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  toggleAvailability: (id: string) => Promise<void>;
+  resetDefaultProducts: () => Promise<void>;
+  placeOrder: (orderData: Omit<Order, "id" | "createdAt" | "status" | "username">) => Promise<Order>;
+  updateOrder: (orderId: string, updates: Partial<Order>) => Promise<void>;
+  deleteOrder: (orderId: string) => Promise<void>;
   setUsername: (username: string) => void;
   clearUsername: () => void;
   cartTotal: number;
@@ -301,39 +248,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     cart: [],
     cartOpen: false,
     username: null,
+    firestoreReady: false,
   });
 
-  // Sync with localStorage on mount & listen to other tabs
-  React.useEffect(() => {
-    // 1. Load products
-    try {
-      const stored = localStorage.getItem(PRODUCTS_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          dispatch({ type: "LOAD_PRODUCTS", products: parsed });
-        }
-      } else {
-        localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(DEFAULT_PRODUCTS));
-      }
-    } catch (e) {
-      console.warn("Failed to load products from localStorage:", e);
-    }
-
-    // 2. Load orders
-    try {
-      const storedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
-      if (storedOrders) {
-        const parsedOrders = JSON.parse(storedOrders);
-        if (Array.isArray(parsedOrders)) {
-          dispatch({ type: "LOAD_ORDERS", orders: parsedOrders });
-        }
-      }
-    } catch (e) {
-      console.warn("Failed to load orders from localStorage:", e);
-    }
-
-    // 3. Load username
+  // ── Load username from localStorage on mount ─────────────────────────────
+  useEffect(() => {
     try {
       const storedUsername = localStorage.getItem(USERNAME_STORAGE_KEY);
       if (storedUsername) {
@@ -342,50 +261,85 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.warn("Failed to load username from localStorage:", e);
     }
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === PRODUCTS_STORAGE_KEY && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          if (Array.isArray(parsed)) {
-            dispatch({ type: "LOAD_PRODUCTS", products: parsed });
-          }
-        } catch (err) {
-          console.warn("Error parsing products storage update:", err);
-        }
-      }
-      if (e.key === ORDERS_STORAGE_KEY && e.newValue) {
-        try {
-          const parsedOrders = JSON.parse(e.newValue);
-          if (Array.isArray(parsedOrders)) {
-            dispatch({ type: "LOAD_ORDERS", orders: parsedOrders });
-          }
-        } catch (err) {
-          console.warn("Error parsing orders storage update:", err);
-        }
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
+  // ── Real-time listener: Products ─────────────────────────────────────────
+  useEffect(() => {
+    const productsCol = collection(db, "products");
+    const unsub = onSnapshot(productsCol, async (snapshot) => {
+      if (snapshot.empty) {
+        // First-time setup — seed Firestore with default products
+        console.log("🌱 Seeding Firestore with default products...");
+        for (const product of DEFAULT_PRODUCTS) {
+          await setDoc(doc(db, "products", product.id), cleanForFirestore(product));
+        }
+        dispatch({ type: "LOAD_PRODUCTS", products: DEFAULT_PRODUCTS });
+      } else {
+        const products = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Product));
+        dispatch({ type: "LOAD_PRODUCTS", products });
+      }
+    }, (err) => {
+      console.error("Firestore products listener error:", err);
+    });
+    return () => unsub();
+  }, []);
+
+  // ── Real-time listener: Orders ───────────────────────────────────────────
+  useEffect(() => {
+    const ordersCol = collection(db, "orders");
+    const q = query(ordersCol, orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const orders = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Order));
+      dispatch({ type: "LOAD_ORDERS", orders });
+      dispatch({ type: "SET_FIRESTORE_READY" });
+    }, (err) => {
+      console.error("Firestore orders listener error:", err);
+      dispatch({ type: "SET_FIRESTORE_READY" });
+    });
+    return () => unsub();
+  }, []);
+
+  // ── Cart (local — per session) ───────────────────────────────────────────
   const addToCart = useCallback((item: CartItem) => dispatch({ type: "ADD_TO_CART", item }), []);
   const removeFromCart = useCallback((cartId: string) => dispatch({ type: "REMOVE_FROM_CART", cartId }), []);
   const updateQuantity = useCallback((cartId: string, quantity: number) => dispatch({ type: "UPDATE_QUANTITY", cartId, quantity }), []);
   const clearCart = useCallback(() => dispatch({ type: "CLEAR_CART" }), []);
   const toggleCart = useCallback((open?: boolean) => dispatch({ type: "TOGGLE_CART", open }), []);
-  const addProduct = useCallback((product: Product) => dispatch({ type: "ADD_PRODUCT", product }), []);
-  const updateProduct = useCallback((product: Product) => dispatch({ type: "UPDATE_PRODUCT", product }), []);
-  const deleteProduct = useCallback((id: string) => dispatch({ type: "DELETE_PRODUCT", id }), []);
-  const toggleAvailability = useCallback((id: string) => dispatch({ type: "TOGGLE_AVAILABILITY", id }), []);
-  const resetDefaultProducts = useCallback(() => dispatch({ type: "RESET_DEFAULT_PRODUCTS" }), []);
 
-  const placeOrder = useCallback((orderData: Omit<Order, "id" | "createdAt" | "status" | "username">) => {
+  // ── Product actions → Firestore ──────────────────────────────────────────
+  const addProduct = useCallback(async (product: Product) => {
+    await setDoc(doc(db, "products", product.id), cleanForFirestore(product));
+  }, []);
+
+  const updateProduct = useCallback(async (product: Product) => {
+    await setDoc(doc(db, "products", product.id), cleanForFirestore(product));
+  }, []);
+
+  const deleteProduct = useCallback(async (id: string) => {
+    await deleteDoc(doc(db, "products", id));
+  }, []);
+
+  const toggleAvailability = useCallback(async (id: string) => {
+    const product = state.products.find((p) => p.id === id);
+    if (!product) return;
+    await updateDoc(doc(db, "products", id), { available: !product.available });
+  }, [state.products]);
+
+  const resetDefaultProducts = useCallback(async () => {
+    for (const product of DEFAULT_PRODUCTS) {
+      await setDoc(doc(db, "products", product.id), cleanForFirestore(product));
+    }
+  }, []);
+
+  // ── Order actions → Firestore ────────────────────────────────────────────
+  const placeOrder = useCallback(async (
+    orderData: Omit<Order, "id" | "createdAt" | "status" | "username">
+  ): Promise<Order> => {
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const storedUsername = typeof window !== "undefined"
-      ? localStorage.getItem(USERNAME_STORAGE_KEY) || "guest"
-      : "guest";
+    const storedUsername =
+      typeof window !== "undefined"
+        ? localStorage.getItem(USERNAME_STORAGE_KEY) || "guest"
+        : "guest";
     const newOrder: Order = {
       ...orderData,
       id: `DD-${randomSuffix}`,
@@ -393,18 +347,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       status: "Pending",
       username: storedUsername,
     };
-    dispatch({ type: "PLACE_ORDER", order: newOrder });
+    await setDoc(doc(db, "orders", newOrder.id), cleanForFirestore(newOrder));
+    dispatch({ type: "CLEAR_CART" });
+    dispatch({ type: "TOGGLE_CART", open: false });
     return newOrder;
   }, []);
 
-  const updateOrder = useCallback((orderId: string, updates: Partial<Order>) => {
-    dispatch({ type: "UPDATE_ORDER", orderId, updates });
+  const updateOrder = useCallback(async (orderId: string, updates: Partial<Order>) => {
+    await updateDoc(doc(db, "orders", orderId), cleanForFirestore(updates));
   }, []);
 
-  const deleteOrder = useCallback((orderId: string) => {
-    dispatch({ type: "DELETE_ORDER", orderId });
+  const deleteOrder = useCallback(async (orderId: string) => {
+    await deleteDoc(doc(db, "orders", orderId));
   }, []);
 
+  // ── Username (localStorage only) ─────────────────────────────────────────
   const setUsername = useCallback((username: string) => {
     dispatch({ type: "SET_USERNAME", username });
   }, []);
@@ -413,6 +370,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "CLEAR_USERNAME" });
   }, []);
 
+  // ── Derived values ───────────────────────────────────────────────────────
   const cartTotal = state.cart.reduce((sum, item) => {
     const sizeExtra = item.size === "Large" ? 20 : item.size === "Small" ? -10 : 0;
     const addOnTotal = item.addOns.reduce((a, b) => a + b.price, 0);
@@ -423,14 +381,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const pendingOrdersCount = state.orders.filter((o) => o.status === "Pending").length;
 
   return (
-    <StoreContext.Provider value={{
-      state,
-      addToCart, removeFromCart, updateQuantity, clearCart,
-      toggleCart, addProduct, updateProduct, deleteProduct, toggleAvailability,
-      resetDefaultProducts, placeOrder, updateOrder, deleteOrder,
-      setUsername, clearUsername,
-      cartTotal, cartCount, pendingOrdersCount,
-    }}>
+    <StoreContext.Provider
+      value={{
+        state,
+        addToCart, removeFromCart, updateQuantity, clearCart,
+        toggleCart, addProduct, updateProduct, deleteProduct, toggleAvailability,
+        resetDefaultProducts, placeOrder, updateOrder, deleteOrder,
+        setUsername, clearUsername,
+        cartTotal, cartCount, pendingOrdersCount,
+      }}
+    >
       {children}
     </StoreContext.Provider>
   );
