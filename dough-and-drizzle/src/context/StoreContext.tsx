@@ -287,9 +287,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // ── Real-time listener: Orders ───────────────────────────────────────────
   useEffect(() => {
     const ordersCol = collection(db, "orders");
-    const q = query(ordersCol, orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const orders = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Order));
+    const unsub = onSnapshot(ordersCol, (snapshot) => {
+      const orders = snapshot.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Order))
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      console.log(`📦 Synced ${orders.length} orders from Firestore`);
       dispatch({ type: "LOAD_ORDERS", orders });
       dispatch({ type: "SET_FIRESTORE_READY" });
     }, (err) => {
