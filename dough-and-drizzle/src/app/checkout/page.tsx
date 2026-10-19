@@ -412,7 +412,7 @@ export default function CheckoutPage() {
             </div>
 
             <div className={styles.paymentOptions}>
-              <label className={`${styles.paymentLabel} ${paymentMethod === "Cash on Delivery (COD)" ? styles.paymentActive : ""}`}>
+              <label htmlFor="payment-cod" className={`${styles.paymentLabel} ${paymentMethod === "Cash on Delivery (COD)" ? styles.paymentActive : ""}`}>
                 <input
                   type="radio"
                   name="payment"
@@ -424,7 +424,7 @@ export default function CheckoutPage() {
                 <span>💵 Cash on Delivery</span>
               </label>
 
-              <label className={`${styles.paymentLabel} ${paymentMethod === "GCash" ? styles.paymentActive : ""}`}>
+              <label htmlFor="payment-gcash" className={`${styles.paymentLabel} ${paymentMethod === "GCash" ? styles.paymentActive : ""}`}>
                 <input
                   type="radio"
                   name="payment"
