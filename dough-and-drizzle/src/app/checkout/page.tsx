@@ -288,42 +288,47 @@ export default function CheckoutPage() {
 
             {/* Customer Name */}
             <div className={styles.formGroup}>
-              <label className={styles.label}>
+              <label htmlFor="checkout-name" className={styles.label}>
                 Full Name <span className={styles.required}>*</span>
               </label>
               <input
                 type="text"
+                name="customerName"
                 className={styles.input}
                 placeholder="e.g. Maria Santos"
                 required
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 id="checkout-name"
+                autoComplete="name"
               />
             </div>
 
             {/* Phone Number */}
             <div className={styles.formGroup}>
-              <label className={styles.label}>
+              <label htmlFor="checkout-phone" className={styles.label}>
                 Mobile Number <span className={styles.required}>*</span>
               </label>
               <input
                 type="tel"
+                name="phone"
                 className={styles.input}
                 placeholder="e.g. 0917-123-4567"
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 id="checkout-phone"
+                autoComplete="tel"
               />
             </div>
 
             {/* Municipality Dropdown (Strictly Bulalacao or Roxas) */}
             <div className={styles.formGroup}>
-              <label className={styles.label}>
+              <label htmlFor="checkout-municipality" className={styles.label}>
                 Municipality (Oriental Mindoro only) <span className={styles.required}>*</span>
               </label>
               <select
+                name="municipality"
                 className={styles.select}
                 value={municipality}
                 onChange={(e) => setMunicipality(e.target.value as Municipality)}
@@ -343,17 +348,19 @@ export default function CheckoutPage() {
 
             {/* Barangay / Street / Landmark */}
             <div className={styles.formGroup}>
-              <label className={styles.label}>
+              <label htmlFor="checkout-address" className={styles.label}>
                 Barangay, Street & Landmark <span className={styles.required}>*</span>
               </label>
               <input
                 type="text"
+                name="barangayStreet"
                 className={styles.input}
                 placeholder="e.g. Brgy. Poblacion, near Municipal Hall / Yellow Gate"
                 required
                 value={barangayStreet}
                 onChange={(e) => setBarangayStreet(e.target.value)}
                 id="checkout-address"
+                autoComplete="street-address"
               />
             </div>
 
@@ -367,11 +374,12 @@ export default function CheckoutPage() {
                 The admin will set your delivery date & time after reviewing your order, and send the schedule straight to your Messenger!
               </p>
               <div className={styles.formGroup} style={{ marginTop: 6 }}>
-                <label className={styles.label} style={{ color: "#0066cc" }}>
+                <label htmlFor="checkout-messenger" className={styles.label} style={{ color: "#0066cc" }}>
                   Your Facebook Messenger Name or Profile Link <span className={styles.required}>*</span>
                 </label>
                 <input
                   type="text"
+                  name="messenger"
                   className={styles.input}
                   placeholder="e.g. Maria Santos (or m.me/maria.santos)"
                   required
@@ -384,8 +392,10 @@ export default function CheckoutPage() {
 
             {/* Special Instructions */}
             <div className={styles.formGroup}>
-              <label className={styles.label}>Special Delivery Instructions (Optional)</label>
+              <label htmlFor="checkout-instructions" className={styles.label}>Special Delivery Instructions (Optional)</label>
               <textarea
+                id="checkout-instructions"
+                name="specialInstructions"
                 className={styles.textarea}
                 placeholder="Special notes for the rider or baker..."
                 value={specialInstructions}
@@ -406,6 +416,8 @@ export default function CheckoutPage() {
                 <input
                   type="radio"
                   name="payment"
+                  id="payment-cod"
+                  value="Cash on Delivery (COD)"
                   checked={paymentMethod === "Cash on Delivery (COD)"}
                   onChange={() => setPaymentMethod("Cash on Delivery (COD)")}
                 />
@@ -416,6 +428,8 @@ export default function CheckoutPage() {
                 <input
                   type="radio"
                   name="payment"
+                  id="payment-gcash"
+                  value="GCash"
                   checked={paymentMethod === "GCash"}
                   onChange={() => setPaymentMethod("GCash")}
                 />
