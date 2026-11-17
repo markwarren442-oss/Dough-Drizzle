@@ -68,7 +68,7 @@ export default function CheckoutPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            orderId: newOrder.id,
+            orderId: newOrder.orderNumber || newOrder.id,
             customerName: newOrder.customerName,
             phone: newOrder.phone,
             municipality: newOrder.municipality,
@@ -124,7 +124,7 @@ export default function CheckoutPage() {
           <div className={styles.successCard}>
             <div className={styles.successEmoji}>🎉</div>
             <h1 className={styles.successTitle}>Order Received!</h1>
-            <div className={styles.orderBadge}>Order #{placedOrder.id}</div>
+            <div className={styles.orderBadge}>Order #{placedOrder.orderNumber || placedOrder.id}</div>
 
             <div className={styles.statusNotice}>
               <h3 className={styles.statusTitle}>⏳ Pending Kitchen Confirmation</h3>

@@ -13,6 +13,7 @@ import {
   doc,
   onSnapshot,
   setDoc,
+  addDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -55,6 +56,7 @@ export type OrderStatus = "Pending" | "Confirmed" | "Out for Delivery" | "Delive
 
 export interface Order {
   id: string;
+  orderNumber: string;   // human-readable order number (e.g. DD-1117-4823)
   createdAt: string;
   username: string;      // customer username for order lookup
   customerName: string;
@@ -229,7 +231,7 @@ interface StoreContextType {
   deleteProduct: (id: string) => Promise<void>;
   toggleAvailability: (id: string) => Promise<void>;
   resetDefaultProducts: () => Promise<void>;
-  placeOrder: (orderData: Omit<Order, "id" | "createdAt" | "status" | "username">) => Promise<Order>;
+  placeOrder: (orderData: Omit<Order, "id" | "orderNumber" | "createdAt" | "status" | "username">) => Promise<Order>;
   updateOrder: (orderId: string, updates: Partial<Order>) => Promise<void>;
   deleteOrder: (orderId: string) => Promise<void>;
   setUsername: (username: string) => void;
@@ -287,17 +289,48 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // ── Real-time listener: Orders ───────────────────────────────────────────
   useEffect(() => {
     const ordersCol = collection(db, "orders");
-    const unsub = onSnapshot(ordersCol, (snapshot) => {
-      const orders = snapshot.docs
-        .map((d) => ({ id: d.id, ...d.data() } as Order))
-        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-      console.log(`📦 Synced ${orders.length} orders from Firestore`);
-      dispatch({ type: "LOAD_ORDERS", orders });
-      dispatch({ type: "SET_FIRESTORE_READY" });
-    }, (err) => {
-      console.error("Firestore orders listener error:", err);
-      dispatch({ type: "SET_FIRESTORE_READY" });
-    });
+    const unsub = onSnapshot(
+      ordersCol,
+      (snapshot) => {
+        const orders = snapshot.docs
+          .map((d) => {
+            const data = d.data();
+            return {
+              id: d.id,
+              orderNumber: data.orderNumber || d.id,
+              createdAt: data.createdAt || new Date(0).toISOString(),
+              username: data.username || "guest",
+              customerName: data.customerName || "Customer",
+              phone: data.phone || "",
+              municipality: data.municipality || "Bulalacao, Oriental Mindoro",
+              barangayStreet: data.barangayStreet || "",
+              messenger: data.messenger || "",
+              specialInstructions: data.specialInstructions || undefined,
+              paymentMethod: data.paymentMethod || "Cash on Delivery (COD)",
+              items: Array.isArray(data.items) ? data.items : [],
+              subtotal: Number(data.subtotal) || 0,
+              deliveryFee: Number(data.deliveryFee) || 0,
+              total: Number(data.total) || 0,
+              status: data.status || "Pending",
+              deliveryDate: data.deliveryDate,
+              deliveryTime: data.deliveryTime,
+              adminNotes: data.adminNotes,
+            } as Order;
+          })
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt || 0).getTime() -
+              new Date(a.createdAt || 0).getTime()
+          );
+        console.log(`📦 Synced ${orders.length} orders from Firestore`);
+        dispatch({ type: "LOAD_ORDERS", orders });
+        dispatch({ type: "SET_FIRESTORE_READY" });
+      },
+      (err) => {
+        console.error("Firestore orders listener error:", err);
+        dispatch({ type: "SET_FIRESTORE_READY" });
+      }
+    );
     return () => unsub();
   }, []);
 
@@ -335,32 +368,46 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // ── Order actions → Firestore ────────────────────────────────────────────
   const placeOrder = useCallback(async (
-    orderData: Omit<Order, "id" | "createdAt" | "status" | "username">
+    orderData: Omit<Order, "id" | "orderNumber" | "createdAt" | "status" | "username">
   ): Promise<Order> => {
+    const now = new Date();
+    const datePart = `${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const readableId = `DD-${datePart}-${randomSuffix}`;
     const storedUsername =
       typeof window !== "undefined"
         ? localStorage.getItem(USERNAME_STORAGE_KEY) || "guest"
         : "guest";
     const newOrder: Order = {
       ...orderData,
-      id: `DD-${randomSuffix}`,
-      createdAt: new Date().toISOString(),
+      id: readableId,
+      orderNumber: readableId,
+      createdAt: now.toISOString(),
       status: "Pending",
       username: storedUsername,
     };
-    await setDoc(doc(db, "orders", newOrder.id), cleanForFirestore(newOrder));
+    await setDoc(doc(db, "orders", readableId), cleanForFirestore(newOrder));
     dispatch({ type: "CLEAR_CART" });
     dispatch({ type: "TOGGLE_CART", open: false });
     return newOrder;
   }, []);
 
   const updateOrder = useCallback(async (orderId: string, updates: Partial<Order>) => {
-    await updateDoc(doc(db, "orders", orderId), cleanForFirestore(updates));
+    try {
+      await updateDoc(doc(db, "orders", orderId), cleanForFirestore(updates));
+    } catch (err) {
+      console.error("Failed to update order:", orderId, err);
+      throw err;
+    }
   }, []);
 
   const deleteOrder = useCallback(async (orderId: string) => {
-    await deleteDoc(doc(db, "orders", orderId));
+    try {
+      await deleteDoc(doc(db, "orders", orderId));
+    } catch (err) {
+      console.error("Failed to delete order:", orderId, err);
+      throw err;
+    }
   }, []);
 
   // ── Username (localStorage only) ─────────────────────────────────────────

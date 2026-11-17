@@ -27,9 +27,13 @@ const SIZE_ADJUSTMENTS: Record<string, number> = {
 };
 
 const getItemPrice = (item: CartItem) => {
+  if (!item) return 0;
   const sizeAdj = SIZE_ADJUSTMENTS[item.size] ?? 0;
-  const addOnTotal = item.addOns.reduce((a, b) => a + b.price, 0);
-  return (item.product.basePrice + sizeAdj + addOnTotal) * item.quantity;
+  const addOnTotal = Array.isArray(item.addOns)
+    ? item.addOns.reduce((a, b) => a + (Number(b?.price) || 0), 0)
+    : 0;
+  const basePrice = item.product?.basePrice ?? 0;
+  return (basePrice + sizeAdj + addOnTotal) * (item.quantity || 1);
 };
 
 const EMPTY_FORM = {
@@ -208,7 +212,7 @@ export default function AdminDashboard({ onLogout }: Props) {
 
   const getOrderNotificationText = (order: Order, date: string, time: string, note?: string) => {
     return `✨ Hello ${order.customerName}! 🍪
-Your order #${order.id} from Dough & Drizzle has been CONFIRMED!
+Your order #${order.orderNumber || order.id} from Dough & Drizzle has been CONFIRMED!
 
 📅 Scheduled Delivery Date: ${date}
 ⏰ Scheduled Delivery Time: ${time}
@@ -246,7 +250,7 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
     }
 
     // Open Messenger URL
-    const clean = order.messenger.trim();
+    const clean = (order.messenger || "").trim();
     let messengerUrl = "https://www.messenger.com";
     if (clean.startsWith("http://") || clean.startsWith("https://")) {
       messengerUrl = clean;
@@ -257,7 +261,7 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
     }
 
     window.open(messengerUrl, "_blank");
-    alert(`🎉 Order #${order.id} Confirmed!\n\nDelivery scheduled for: ${sched.date} at ${sched.time}.\n\nThe notification message has been copied to your clipboard! Paste it into Messenger to notify ${order.customerName}.`);
+    alert(`🎉 Order #${order.orderNumber || order.id} Confirmed!\n\nDelivery scheduled for: ${sched.date} at ${sched.time}.\n\nThe notification message has been copied to your clipboard! Paste it into Messenger to notify ${order.customerName}.`);
   };
 
   const handleCopyMessage = (order: Order) => {
@@ -299,23 +303,78 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
       <div className={styles.dashContainer}>
         {/* Stats */}
         <div className={styles.stats}>
-        <div className={styles.statCard}>
-          <span className={styles.statNum}>{state.products.length}</span>
-          <span className={styles.statLabel}>Products</span>
+          <div
+            className={styles.statCard}
+            onClick={() => { setTab("products"); resetForm(); }}
+            style={{ cursor: "pointer" }}
+            title="View products"
+          >
+            <span className={styles.statNum}>{state.products.length}</span>
+            <span className={styles.statLabel}>Products</span>
+          </div>
+          <div
+            className={styles.statCard}
+            onClick={() => { setTab("products"); resetForm(); }}
+            style={{ cursor: "pointer" }}
+            title="View available items"
+          >
+            <span className={styles.statNum}>{state.products.filter((p) => p.available).length}</span>
+            <span className={styles.statLabel}>Available</span>
+          </div>
+          <div
+            className={styles.statCard}
+            onClick={() => { setTab("orders"); resetForm(); }}
+            style={{
+              cursor: "pointer",
+              background: pendingOrdersCount > 0 ? "#fff0f5" : undefined,
+              borderColor: pendingOrdersCount > 0 ? "var(--pink-deep)" : undefined,
+            }}
+            title="Click to view all orders"
+          >
+            <span className={styles.statNum} style={pendingOrdersCount > 0 ? { color: "var(--pink-deep)" } : {}}>
+              {state.orders.length}
+            </span>
+            <span className={styles.statLabel}>
+              Orders {pendingOrdersCount > 0 ? `(${pendingOrdersCount} new)` : ""}
+            </span>
+          </div>
         </div>
-        <div className={styles.statCard}>
-          <span className={styles.statNum}>{state.products.filter((p) => p.available).length}</span>
-          <span className={styles.statLabel}>Available</span>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statNum}>{state.orders.length}</span>
-          <span className={styles.statLabel}>
-            Orders {pendingOrdersCount > 0 ? `(${pendingOrdersCount} new)` : ""}
-          </span>
-        </div>
-      </div>
 
-      {/* Tabs */}
+        {/* Pending Orders Alert Banner */}
+        {pendingOrdersCount > 0 && tab !== "orders" && (
+          <div
+            onClick={() => setTab("orders")}
+            style={{
+              background: "linear-gradient(135deg, #fff0f5, #ffe4ec)",
+              border: "2px solid var(--pink-deep)",
+              borderRadius: "16px",
+              padding: "12px 18px",
+              marginBottom: "18px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              cursor: "pointer",
+              boxShadow: "0 4px 12px rgba(232, 121, 168, 0.2)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span style={{ fontSize: "24px" }}>🔔</span>
+              <div>
+                <strong style={{ fontSize: "14px", color: "#8a2b52" }}>
+                  {pendingOrdersCount} New Customer Order{pendingOrdersCount > 1 ? "s" : ""} Waiting!
+                </strong>
+                <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#a05273" }}>
+                  Tap here to see who ordered, what they ordered, and send their delivery schedule.
+                </p>
+              </div>
+            </div>
+            <span style={{ fontWeight: 800, fontSize: "13px", color: "var(--pink-deep)" }}>
+              View Orders →
+            </span>
+          </div>
+        )}
+
+        {/* Tabs */}
       <div className={styles.tabs}>
         <button
           className={`${styles.tab} ${tab === "products" ? styles.tabActive : ""}`}
@@ -628,22 +687,22 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
                   }
                 };
 
-                const dateStr = new Date(order.createdAt).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                });
-                const timeStr = new Date(order.createdAt).toLocaleTimeString("en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                });
+                const orderDate = order.createdAt ? new Date(order.createdAt) : null;
+                const isValidDate = orderDate && !isNaN(orderDate.getTime());
+                const dateStr = isValidDate
+                  ? orderDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                  : "Recent";
+                const timeStr = isValidDate
+                  ? orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+                  : "";
 
                 return (
                   <div key={order.id} className={styles.orderCard} id={`order-card-${order.id}`}>
                     {/* Header */}
                     <div className={styles.orderTop}>
                       <div>
-                        <span className={styles.orderId}>#{order.id}</span>
-                        <span className={styles.orderDate}>{dateStr} at {timeStr}</span>
+                        <span className={styles.orderId}>#{order.orderNumber || order.id}</span>
+                        <span className={styles.orderDate}>{dateStr} {timeStr ? `at ${timeStr}` : ""}</span>
                       </div>
                       <span className={`${styles.statusPill} ${getStatusPillClass()}`}>
                         {order.status === "Pending" && "⏳ "}
@@ -661,9 +720,17 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
                         <span>👤 Customer:</span>
                         <strong>{order.customerName}</strong>
                       </div>
+                      {order.username && (
+                        <div className={styles.customerRow}>
+                          <span>🏷️ Username:</span>
+                          <span style={{ color: "var(--pink-deep)", fontWeight: 700 }}>@{order.username}</span>
+                        </div>
+                      )}
                       <div className={styles.customerRow}>
                         <span>📞 Phone:</span>
-                        <strong>{order.phone}</strong>
+                        <a href={`tel:${order.phone}`} style={{ color: "inherit", textDecoration: "underline", fontWeight: 700 }}>
+                          {order.phone}
+                        </a>
                       </div>
                       <div className={styles.customerRow}>
                         <span>📍 Municipality:</span>
@@ -688,22 +755,43 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
 
                     {/* Items List */}
                     <div className={styles.orderItemsBox}>
-                      {order.items.map((item, i) => (
-                        <div key={i} className={styles.orderItemLine}>
-                          <span>
-                            {item.quantity}x {item.product.name} ({item.size})
-                            {item.flavor && ` · ${item.flavor}`}
-                            {item.addOns.length > 0 && ` (+${item.addOns.map(a => a.label).join(", ")})`}
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: "#8a6d7a", marginBottom: 6, textTransform: "uppercase" }}>
+                        Items Ordered ({(order.items || []).length}):
+                      </div>
+                      {(order.items || []).map((item, i) => (
+                        <div key={i} className={styles.orderItemLine} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                          <div>
+                            <span style={{ fontWeight: 700, color: "var(--pink-deep)" }}>{item.quantity}x</span>{" "}
+                            <strong>{item.product?.name || "Bakery Item"}</strong>{" "}
+                            <span style={{ fontSize: "12px", color: "#666" }}>({item.size || "Regular"})</span>
+                            {item.flavor && <span style={{ fontSize: "12px", color: "#666" }}> · {item.flavor}</span>}
+                            {item.addOns && item.addOns.length > 0 && (
+                              <div style={{ fontSize: "11px", color: "#888", marginTop: 2 }}>
+                                + {item.addOns.map((a) => a.label).join(", ")}
+                              </div>
+                            )}
+                            {item.specialNote && (
+                              <div style={{ fontSize: "11px", color: "#c08060", fontStyle: "italic", marginTop: 2 }}>
+                                Note: &ldquo;{item.specialNote}&rdquo;
+                              </div>
+                            )}
+                          </div>
+                          <span style={{ fontWeight: 700, fontSize: "13px", color: "#3d2b1f", marginLeft: 8 }}>
+                            ₱{getItemPrice(item)}
                           </span>
                         </div>
                       ))}
-                      <div className={styles.orderItemLine} style={{ color: "#888", fontSize: "11px", marginTop: 4 }}>
-                        <span>Delivery Fee ({order.municipality.split(",")[0]})</span>
-                        <span>₱{order.deliveryFee}</span>
+                      <div className={styles.orderItemLine} style={{ color: "#888", fontSize: "11.5px", marginTop: 6, borderTop: "1px dashed #f5d0e0", paddingTop: 4 }}>
+                        <span>Subtotal</span>
+                        <span>₱{order.subtotal || 0}</span>
                       </div>
-                      <div className={styles.orderTotalRow}>
-                        <span>Total ({order.paymentMethod})</span>
-                        <span>₱{order.total}</span>
+                      <div className={styles.orderItemLine} style={{ color: "#888", fontSize: "11.5px" }}>
+                        <span>Delivery Fee ({order.municipality ? order.municipality.split(",")[0] : "Local"})</span>
+                        <span>₱{order.deliveryFee || 0}</span>
+                      </div>
+                      <div className={styles.orderTotalRow} style={{ marginTop: 4 }}>
+                        <span>Total ({order.paymentMethod || "COD"})</span>
+                        <span style={{ color: "var(--pink-deep)", fontSize: "16px", fontWeight: 900 }}>₱{order.total || 0}</span>
                       </div>
                     </div>
 
@@ -817,7 +905,7 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
                           className={styles.statusChangeBtn}
                           style={{ color: "#c62828" }}
                           onClick={() => {
-                            if (window.confirm(`Cancel order #${order.id}?`)) {
+                            if (window.confirm(`Cancel order #${order.orderNumber || order.id}?`)) {
                               void updateOrder(order.id, { status: "Cancelled" });
                             }
                           }}
@@ -828,7 +916,7 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
                       <button
                         className={styles.deleteOrderBtn}
                         onClick={() => {
-                          if (window.confirm(`Delete order #${order.id} permanently from records?`)) {
+                          if (window.confirm(`Delete order #${order.orderNumber || order.id} permanently from records?`)) {
                             void deleteOrder(order.id);
                           }
                         }}
@@ -878,12 +966,18 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
 
               <div className={styles.receiptRow}>
                 <span><strong>ORDER #:</strong></span>
-                <span><strong>{selectedReceiptOrder.id}</strong></span>
+                <span><strong>{selectedReceiptOrder.orderNumber || selectedReceiptOrder.id}</strong></span>
               </div>
               <div className={styles.receiptRow}>
                 <span>Date:</span>
                 <span>
-                  {new Date(selectedReceiptOrder.createdAt).toLocaleDateString()} {new Date(selectedReceiptOrder.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  {(() => {
+                    const rDate = selectedReceiptOrder.createdAt ? new Date(selectedReceiptOrder.createdAt) : null;
+                    const isValid = rDate && !isNaN(rDate.getTime());
+                    return isValid
+                      ? `${rDate.toLocaleDateString()} ${rDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                      : "Recent";
+                  })()}
                 </span>
               </div>
               <div className={styles.receiptRow}>
@@ -935,12 +1029,12 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
 
               <div style={{ margin: "4px 0" }}>
                 <div style={{ fontSize: "10px", fontWeight: "bold", textTransform: "uppercase", color: "#555", marginBottom: "4px" }}>Items Ordered:</div>
-                {selectedReceiptOrder.items.map((item, idx) => (
+                {(selectedReceiptOrder.items || []).map((item, idx) => (
                   <div key={idx} className={styles.receiptItemRow}>
                     <div style={{ maxWidth: "70%" }}>
-                      <div><strong>{item.quantity}x {item.product.name}</strong> ({item.size})</div>
+                      <div><strong>{item.quantity}x {item.product?.name || "Bakery Item"}</strong> ({item.size})</div>
                       {item.flavor && <div style={{ fontSize: "9.5px", color: "#555" }}>Flavor: {item.flavor}</div>}
-                      {item.addOns.length > 0 && (
+                      {item.addOns && item.addOns.length > 0 && (
                         <div style={{ fontSize: "9px", color: "#666" }}>
                           + {item.addOns.map((a) => a.label).join(", ")}
                         </div>
@@ -956,8 +1050,8 @@ We are preparing your sweet treats fresh with love 💕 Thank you for ordering f
               <hr className={styles.receiptDivider} />
 
               <div className={styles.receiptRow}>
-                <span>Delivery Fee ({selectedReceiptOrder.municipality.split(",")[0]}):</span>
-                <span>₱{selectedReceiptOrder.deliveryFee}</span>
+                <span>Delivery Fee ({selectedReceiptOrder.municipality ? selectedReceiptOrder.municipality.split(",")[0] : "Local"}):</span>
+                <span>₱{selectedReceiptOrder.deliveryFee || 0}</span>
               </div>
               <div className={styles.receiptRow}>
                 <span>Payment Method:</span>

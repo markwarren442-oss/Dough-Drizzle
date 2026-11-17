@@ -276,7 +276,7 @@ export default function CustomerPage() {
             </span>
             <div>
               <p style={{ margin: "0 0 2px", fontWeight: 800, fontSize: "13px", color: "#3d2b1f" }}>
-                Order #{myOrders[0].id} · <span style={{ color: "var(--pink-deep)" }}>{myOrders[0].status}</span>
+                Order #{myOrders[0].orderNumber || myOrders[0].id} · <span style={{ color: "var(--pink-deep)" }}>{myOrders[0].status}</span>
               </p>
               <p style={{ margin: 0, fontSize: "11px", color: "#8a6d7a" }}>
                 {myOrders[0].deliveryDate && myOrders[0].deliveryTime
@@ -435,7 +435,7 @@ export default function CustomerPage() {
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <strong style={{ fontSize: "14px", color: "#3d2b1f" }}>#{ord.id}</strong>
+                      <strong style={{ fontSize: "14px", color: "#3d2b1f" }}>#{ord.orderNumber || ord.id}</strong>
                       <span
                         style={{
                           fontSize: "11px",
